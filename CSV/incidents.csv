@@ -1,0 +1,4 @@
+incident_id,assignment_id,time,location,type,severity,description,reported_by_guard_id,escalated_to,resolved
+1,1,"2025-09-20T14:30:00","Main Entrance - Gate 3","Unruly Customer","LOW","Customer became argumentative when denied entry",1,"",true
+2,2,"2025-09-20T11:15:00","Exhibition Floor - Section B","Medical Emergency","MEDIUM","Elderly visitor felt dizzy and sat down",2,"Medical Team",true
+3,4,"2025-10-15T15:45:00","Parking Area","Suspicious Activity","MEDIUM","Individual loitering near expensive vehicles",3,"",true

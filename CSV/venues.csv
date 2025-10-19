@@ -1,0 +1,8 @@
+venue_id,client_id,name,address,zone,capacity,risk_rating
+1,1,"Melbourne Convention Centre - Main Hall","1 Convention Centre Pl, South Wharf VIC 3006","Central",5000,"MEDIUM"
+2,1,"Melbourne Convention Centre - Exhibition Hall","1 Convention Centre Pl, South Wharf VIC 3006","North",3000,"LOW"
+3,2,"Crown Casino - Gaming Floor","8 Whiteman St, Southbank VIC 3006","Gaming",2000,"HIGH"
+4,2,"Crown Casino - Event Space","8 Whiteman St, Southbank VIC 3006","Events",1500,"MEDIUM"
+5,3,"Chadstone SC - Food Court","1341 Dandenong Rd, Chadstone VIC 3148","Level 2",800,"LOW"
+6,3,"Chadstone SC - Main Entrance","1341 Dandenong Rd, Chadstone VIC 3148","Ground",1000,"MEDIUM"
+7,4,"Marvel Stadium - Main Arena","740 Bourke St, Docklands VIC 3008","Field Level",56000,"HIGH"

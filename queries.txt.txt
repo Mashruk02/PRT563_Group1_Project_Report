@@ -1,0 +1,169 @@
+//Query1
+MATCH (g:Guard)
+OPTIONAL MATCH (g)-[:ASSIGNED_TO]->(a:Assignment)
+OPTIONAL MATCH (g)-[:COMPLETED]->(t:Training)
+OPTIONAL MATCH (a)-[:HAD_INCIDENT]->(i:Incident)
+WITH g,
+     COUNT(DISTINCT a) as total_assignments,
+     COUNT(CASE WHEN a.status = 'completed' THEN 1 END) as completed_shifts,
+     COUNT(CASE WHEN a.status = 'no-show' THEN 1 END) as no_shows,
+     COUNT(DISTINCT t) as training_count,
+     COUNT(DISTINCT i) as incidents_during_shifts,
+     COLLECT(DISTINCT t.name) as trainings_completed
+RETURN 
+    g.name as GuardName,
+    g.licence_no as LicenceNumber,
+    g.licence_expiry as LicenceExpiry,
+    duration.inDays(date(), g.licence_expiry).days as DaysUntilExpiry,
+    total_assignments as TotalAssignments,
+    completed_shifts as CompletedShifts,
+    no_shows as NoShows,
+    ROUND(toFloat(completed_shifts) * 100.0 / NULLIF(total_assignments, 0), 1) as CompletionRate,
+    training_count as TotalTrainings,
+    incidents_during_shifts as IncidentsInvolved,
+    trainings_completed as Certifications,
+    CASE 
+        WHEN total_assignments = 0 THEN 'AVAILABLE - No assignments'
+        WHEN total_assignments >= 3 THEN 'HIGH WORKLOAD'
+        WHEN total_assignments >= 2 THEN 'MODERATE WORKLOAD'
+        ELSE 'LOW WORKLOAD'
+    END as WorkloadLevel,
+    CASE
+        WHEN no_shows > 0 THEN 'RELIABILITY ISSUE - Review required'
+        WHEN toFloat(completed_shifts) / NULLIF(total_assignments, 0) >= 0.9 
+             AND training_count >= 3 THEN 'TOP PERFORMER - Consider for promotion'
+        WHEN training_count >= 3 THEN 'WELL TRAINED - Good for complex assignments'
+        WHEN duration.inDays(date(), g.licence_expiry).days < 60 THEN 'URGENT - Licence renewal needed'
+        ELSE 'STANDARD PERFORMANCE'
+    END as HRRecommendation
+ORDER BY CompletionRate DESC, total_assignments DESC;
+
+
+//Query2
+MATCH path = (c:Client)-[:OWNS]->(v:Venue)-[:HOSTS]->(e:Event)
+             -[:REQUIRES]->(s:Shift)<-[:FOR_SHIFT]-(a:Assignment)
+             -[:HAD_INCIDENT]->(i:Incident)
+WITH c, v, e, i, LENGTH(path) as PathLength,
+     COUNT(*) as incident_count,
+     COLLECT(DISTINCT i.type) as incident_types,
+     COLLECT(DISTINCT i.severity) as severity_levels
+RETURN 
+    c.name as Client,
+    v.name as Venue,
+    v.risk_rating as VenueRiskRating,
+    e.name as Event,
+    e.event_type as EventType,
+    incident_count as TotalIncidents,
+    incident_types as IncidentTypes,
+    severity_levels as SeverityLevels,
+    CASE 
+        WHEN incident_count >= 3 THEN 'HIGH INCIDENT EVENT'
+        WHEN incident_count >= 2 THEN 'MEDIUM INCIDENT EVENT'
+        ELSE 'LOW INCIDENT EVENT'
+    END as RiskClassification
+ORDER BY incident_count DESC, v.risk_rating DESC;
+
+
+
+//Query3
+MATCH (g:Guard)-[comp:COMPLETED]->(t:Training)
+WITH g, 
+     COLLECT({
+         training: t.name, 
+         provider: t.provider, 
+         completion_date: comp.completion_date
+     }) as trainings
+OPTIONAL MATCH (g)-[:ASSIGNED_TO]->(a:Assignment)-[:FOR_SHIFT]->(s:Shift)
+WITH g, trainings, 
+     COLLECT(DISTINCT s.role) as roles_performed,
+     COUNT(DISTINCT a) as total_assignments
+RETURN 
+    g.name as GuardName,
+    g.licence_no as LicenceNumber,
+    g.RSA as HasRSA,
+    g.first_aid as HasFirstAid,
+    g.WWC as HasWWC,
+    SIZE(trainings) as TrainingCount,
+    [t IN trainings | t.training] as CompletedTrainings,
+    roles_performed as RolesPerformed,
+    total_assignments as TotalAssignments,
+    CASE 
+        WHEN SIZE(trainings) >= 4 THEN 'HIGHLY TRAINED'
+        WHEN SIZE(trainings) >= 2 THEN 'MODERATELY TRAINED'
+        ELSE 'MINIMALLY TRAINED'
+    END as TrainingLevel
+ORDER BY TrainingCount DESC, total_assignments DESC;
+
+
+
+
+//Query4
+MATCH (c:Client)-[:OWNS]->(v:Venue)-[:HOSTS]->(e:Event)
+      -[:REQUIRES]->(s:Shift)<-[:FOR_SHIFT]-(a:Assignment)
+      <-[:ASSIGNED_TO]-(g:Guard)
+OPTIONAL MATCH (a)-[:HAD_INCIDENT]->(i:Incident)
+WITH v, c,
+     COUNT(DISTINCT e) as events_hosted,
+     COUNT(DISTINCT s) as shifts_created,
+     COUNT(DISTINCT g) as unique_guards,
+     COUNT(DISTINCT a) as total_assignments,
+     COUNT(DISTINCT i) as incident_count,
+     COLLECT(DISTINCT s.role) as security_roles,
+     AVG(e.expected_attendance) as avg_attendance
+RETURN 
+    c.name as Client,
+    v.name as Venue,
+    v.zone as VenueZone,
+    v.risk_rating as RiskLevel,
+    v.capacity as VenueCapacity,
+    events_hosted as EventsHosted,
+    shifts_created as ShiftsCreated,
+    unique_guards as UniqueGuards,
+    total_assignments as TotalAssignments,
+    incident_count as IncidentCount,
+    security_roles as SecurityRoles,
+    ROUND(toFloat(incident_count) / NULLIF(events_hosted, 0), 2) as IncidentsPerEvent,
+    ROUND(toFloat(total_assignments) / NULLIF(events_hosted, 0), 1) as GuardsPerEvent,
+    CASE 
+        WHEN unique_guards >= 5 THEN 'HIGH COVERAGE'
+        WHEN unique_guards >= 3 THEN 'MEDIUM COVERAGE'
+        ELSE 'LOW COVERAGE'
+    END as SecurityCoverageLevel
+ORDER BY IncidentsPerEvent DESC, RiskLevel DESC, VenueCapacity DESC;
+MATCH (c:Client)-[:OWNS]->(v:Venue)-[:HOSTS]->(e:Event)
+      -[:REQUIRES]->(s:Shift)<-[:FOR_SHIFT]-(a:Assignment)
+      <-[:ASSIGNED_TO]-(g:Guard)
+OPTIONAL MATCH (a)-[:HAD_INCIDENT]->(i:Incident)
+WITH v, c,
+     COUNT(DISTINCT e) as events_hosted,
+     COUNT(DISTINCT s) as shifts_created,
+     COUNT(DISTINCT g) as unique_guards,
+     COUNT(DISTINCT a) as total_assignments,
+     COUNT(DISTINCT i) as incident_count,
+     COLLECT(DISTINCT s.role) as security_roles,
+     AVG(e.expected_attendance) as avg_attendance
+RETURN 
+    c.name as Client,
+    v.name as Venue,
+    v.zone as VenueZone,
+    v.risk_rating as RiskLevel,
+    v.capacity as VenueCapacity,
+    events_hosted as EventsHosted,
+    shifts_created as ShiftsCreated,
+    unique_guards as UniqueGuards,
+    total_assignments as TotalAssignments,
+    incident_count as IncidentCount,
+    security_roles as SecurityRoles,
+    ROUND(toFloat(incident_count) / NULLIF(events_hosted, 0), 2) as IncidentsPerEvent,
+    ROUND(toFloat(total_assignments) / NULLIF(events_hosted, 0), 1) as GuardsPerEvent,
+    CASE 
+        WHEN unique_guards >= 5 THEN 'HIGH COVERAGE'
+        WHEN unique_guards >= 3 THEN 'MEDIUM COVERAGE'
+        ELSE 'LOW COVERAGE'
+    END as SecurityCoverageLevel
+ORDER BY IncidentsPerEvent DESC, RiskLevel DESC, VenueCapacity DESC;
+
+
+
+
+

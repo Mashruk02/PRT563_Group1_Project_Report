@@ -1,0 +1,234 @@
+//Constraints (Primary & Unique Keys)
+// --- Client ---
+CREATE CONSTRAINT client_id_unique IF NOT EXISTS
+FOR (c:Client)
+REQUIRE c.client_id IS UNIQUE;
+
+CREATE CONSTRAINT client_name_unique IF NOT EXISTS
+FOR (c:Client)
+REQUIRE c.name IS UNIQUE;
+
+CREATE CONSTRAINT client_abn_unique IF NOT EXISTS
+FOR (c:Client)
+REQUIRE c.ABN IS UNIQUE;
+
+// --- Venue ---
+CREATE CONSTRAINT venue_id_unique IF NOT EXISTS
+FOR (v:Venue)
+REQUIRE v.venue_id IS UNIQUE;
+
+// --- Event ---
+CREATE CONSTRAINT event_id_unique IF NOT EXISTS
+FOR (e:Event)
+REQUIRE e.event_id IS UNIQUE;
+
+// --- Shift ---
+CREATE CONSTRAINT shift_id_unique IF NOT EXISTS
+FOR (s:Shift)
+REQUIRE s.shift_id IS UNIQUE;
+
+// --- Guard ---
+CREATE CONSTRAINT guard_id_unique IF NOT EXISTS
+FOR (g:Guard)
+REQUIRE g.guard_id IS UNIQUE;
+
+CREATE CONSTRAINT guard_email_unique IF NOT EXISTS
+FOR (g:Guard)
+REQUIRE g.email IS UNIQUE;
+
+CREATE CONSTRAINT guard_licence_unique IF NOT EXISTS
+FOR (g:Guard)
+REQUIRE g.licence_no IS UNIQUE;
+
+// --- Assignment ---
+CREATE CONSTRAINT assignment_id_unique IF NOT EXISTS
+FOR (a:Assignment)
+REQUIRE a.assignment_id IS UNIQUE;
+
+// --- Incident ---
+CREATE CONSTRAINT incident_id_unique IF NOT EXISTS
+FOR (i:Incident)
+REQUIRE i.incident_id IS UNIQUE;
+
+// --- Training ---
+CREATE CONSTRAINT training_id_unique IF NOT EXISTS
+FOR (t:Training)
+REQUIRE t.training_id IS UNIQUE;
+
+// --- Equipment ---
+CREATE CONSTRAINT equipment_id_unique IF NOT EXISTS
+FOR (eq:Equipment)
+REQUIRE eq.equipment_id IS UNIQUE;
+
+CREATE CONSTRAINT equipment_serial_unique IF NOT EXISTS
+FOR (eq:Equipment)
+REQUIRE eq.serial_no IS UNIQUE;
+
+// --- Invoice ---
+CREATE CONSTRAINT invoice_id_unique IF NOT EXISTS
+FOR (inv:Invoice)
+REQUIRE inv.invoice_id IS UNIQUE;
+
+
+
+
+//Sample Node Creation
+// --- Client ---
+CREATE (:Client {
+  client_id: 1,
+  name: "Acme Security",
+  ABN: "12345678901",
+  billing_terms: "Net 30",
+  contact_person: "John Doe",
+  contact_email: "john@acme.com",
+  created_date: date("2025-01-10")
+});
+
+// --- Venue ---
+CREATE (:Venue {
+  venue_id: 1,
+  name: "Stadium A",
+  address: "123 Main St, Sydney",
+  zone: "A",
+  capacity: 5000,
+  risk_rating: "HIGH"
+});
+
+// --- Event ---
+CREATE (:Event {
+  event_id: 1,
+  name: "Summer Concert",
+  date_time_start: datetime("2025-12-01T18:00:00"),
+  date_time_end: datetime("2025-12-01T23:00:00"),
+  event_type: "Music",
+  expected_attendance: 4500
+});
+
+// --- Shift ---
+CREATE (:Shift {
+  shift_id: 1,
+  role: "Security Guard",
+  start_time: datetime("2025-12-01T17:00:00"),
+  end_time: datetime("2025-12-01T23:30:00"),
+  zone: "A",
+  required_clearances: "RSA, First Aid",
+  supervisor: "Jane Smith"
+});
+
+// --- Guard ---
+CREATE (:Guard {
+  guard_id: 1,
+  name: "Alex Brown",
+  email: "alex.brown@example.com",
+  mobile: "+61412345678",
+  licence_no: "LIC998877",
+  licence_expiry: date("2026-05-30"),
+  RSA: true,
+  first_aid: true,
+  WWC: false,
+  active_status: true
+});
+
+// --- Assignment ---
+CREATE (:Assignment {
+  assignment_id: 1,
+  check_in_time: datetime("2025-12-01T16:50:00"),
+  check_out_time: datetime("2025-12-01T23:40:00"),
+  status: "completed",
+  notes: "All clear"
+});
+
+// --- Incident ---
+CREATE (:Incident {
+  incident_id: 1,
+  time: datetime("2025-12-01T21:15:00"),
+  location: "Gate A",
+  type: "Crowd Disturbance",
+  severity: "MEDIUM",
+  description: "Minor pushing near the entry gate.",
+  action_taken: "Additional guards deployed",
+  escalated_to: "Supervisor",
+  resolved: true
+});
+
+// --- Training ---
+CREATE (:Training {
+  training_id: 1,
+  name: "First Aid Certification",
+  provider: "Red Cross",
+  valid_from: date("2024-01-01"),
+  valid_to: date("2026-01-01")
+});
+
+// --- Equipment ---
+CREATE (:Equipment {
+  equipment_id: 1,
+  type: "Radio",
+  serial_no: "RDX123456",
+  status: "available"
+});
+
+// --- Invoice ---
+CREATE (:Invoice {
+  invoice_id: 1,
+  period_start: date("2025-11-01"),
+  period_end: date("2025-11-30"),
+  amount: 12000.50,
+  status: "pending",
+  created_date: date("2025-12-01"),
+  due_date: date("2025-12-15")
+});
+
+
+
+
+//Relationships (Graph Edges) 
+// Client owns Venue
+MATCH (c:Client {client_id: 1}), (v:Venue {venue_id: 1})
+CREATE (c)-[:OWNS]->(v);
+
+// Venue hosts Event
+MATCH (v:Venue {venue_id: 1}), (e:Event {event_id: 1})
+CREATE (v)-[:HOSTS]->(e);
+
+// Event requires Shift
+MATCH (e:Event {event_id: 1}), (s:Shift {shift_id: 1})
+CREATE (e)-[:REQUIRES]->(s);
+
+// Guard assigned to Assignment
+MATCH (g:Guard {guard_id: 1}), (a:Assignment {assignment_id: 1})
+CREATE (g)-[:ASSIGNED_TO]->(a);
+
+// Assignment fulfills Shift
+MATCH (a:Assignment {assignment_id: 1}), (s:Shift {shift_id: 1})
+CREATE (a)-[:FOR_SHIFT]->(s);
+
+// Assignment had Incident
+MATCH (a:Assignment {assignment_id: 1}), (i:Incident {incident_id: 1})
+CREATE (a)-[:HAD_INCIDENT]->(i);
+
+// Guard reported Incident
+MATCH (g:Guard {guard_id: 1}), (i:Incident {incident_id: 1})
+CREATE (g)-[:REPORTED]->(i);
+
+// Client receives Invoice
+MATCH (c:Client {client_id: 1}), (inv:Invoice {invoice_id: 1})
+CREATE (c)-[:RECEIVES]->(inv);
+
+// Guard completed Training
+MATCH (g:Guard {guard_id: 1}), (t:Training {training_id: 1})
+CREATE (g)-[:COMPLETED {completion_date: date("2024-01-15")}]->(t);
+
+// Assignment used Equipment
+MATCH (a:Assignment {assignment_id: 1}), (eq:Equipment {equipment_id: 1})
+CREATE (a)-[:USED_EQUIPMENT {
+  assigned_date: datetime("2025-09-20T06:55:00"),
+  returned_date: datetime("2025-09-20T19:05:00")
+}]->(eq);
+
+
+
+//Viasualize full graph model 
+MATCH (n)-[r]->(m) RETURN n, r, m;
+
+
